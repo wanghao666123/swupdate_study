@@ -33,6 +33,7 @@ export HAVE_FREEBSD = y
 else
 export HAVE_FREEBSD = n
 endif
+#!OSNAME = Linux HAVE_LINUX = y
 
 # To put more focus on warnings, be less verbose as default
 # Use 'make V=1' to see the full commands
@@ -65,36 +66,43 @@ _all:
 
 # KBUILD_SRC is set on invocation of make in OBJ directory
 # KBUILD_SRC is not intended to be used by the regular user (for now)
+#!这里KBUILD_SRC应该为空
 ifeq ($(KBUILD_SRC),)
 
 # OK, Make called in directory where kernel src resides
 # Do we want to locate output files in a separate directory?
+#!如果是终端命令中所指定的build ouput路径
 ifeq ("$(origin O)", "command line")
   KBUILD_OUTPUT := $(O)
 endif
 
+#!是否启用额外的 GCC 检查功能（通常与内核编译相关）
 ifeq ("$(origin W)", "command line")
   export KBUILD_ENABLE_EXTRA_GCC_CHECKS := $(W)
 endif
 
 # Cancel implicit rules on top Makefile
+#!如果你有一个 Makefile，Makefile 可能尝试用它生成其他 Makefile。
 $(CURDIR)/Makefile Makefile: ;
 
+#!如果人为定义了build输出路径
 ifneq ($(KBUILD_OUTPUT),)
 # Invoke a second make in the output directory, passing relevant variables
 # check that the output directory actually exists
 saved-output := $(KBUILD_OUTPUT)
+#!检查build输出路径是否存在
 KBUILD_OUTPUT := $(shell cd $(KBUILD_OUTPUT) && /bin/pwd)
 $(if $(KBUILD_OUTPUT),, \
      $(error output directory "$(saved-output)" does not exist))
 
+#!make clean build，则 $(MAKECMDGOALS) 的值是 clean build
 PHONY += $(MAKECMDGOALS) sub-make
-
+#!从 MAKECMDGOALS（如 clean build）中移除 _all、sub-make 和 $(CURDIR)/Makefile，然后由于依赖sub-make，所以先执行sub-make
 $(filter-out _all sub-make $(CURDIR)/Makefile, $(MAKECMDGOALS)) _all: sub-make
 	$(Q)@:
-
+#!进入之前通过命令指定的build输出目录，然后使用顶层目录的makefile，重新make一遍
 sub-make: FORCE
-	$(if $(KBUILD_VERBOSE:1=),@)$(MAKE) -C $(KBUILD_OUTPUT) \
+	$(if $(KBUILD_VERBOSE:1=),@)$(MAKE) -C $(KBUILD_OUTPUT) \ #!判断KBUILD_VERBOSE是否等于1,等于1则什么都不做,在前面KBUILD_VERBOSE不等于1,等于0,则添加 @，隐藏后续命令的输出。
 	KBUILD_SRC=$(CURDIR) \
 	-f $(CURDIR)/Makefile \
 	$(filter-out _all sub-make,$(MAKECMDGOALS))
@@ -158,7 +166,7 @@ HOSTCXXFLAGS = -O2
 #
 # If KBUILD_VERBOSE equals 0 then the above command will be hidden.
 # If KBUILD_VERBOSE equals 1 then the above command is displayed.
-
+#!@ 前缀的作用是隐藏该命令本身的输出，但不会影响命令执行。
 ifeq ($(KBUILD_VERBOSE),1)
   quiet =
   Q =
